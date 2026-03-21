@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+<style>
+/* ==========================================================================
+   GLACIER UI CORE SYSTEM - ARR CALENDAR
+   ========================================================================== */
+* { scrollbar-width: none; -ms-overflow-style: none; box-sizing: border-box; }
+::-webkit-scrollbar { display: none; }
+body { background: linear-gradient(145deg, #1a1f2e 0%, #0d1117 100%); margin: 0; padding: 16px; font-family: system-ui, sans-serif; color: #ffffff; -webkit-touch-callout: none; }
+
+/* Top Navigation Bar */
+.top-bar { display: none; gap: 8px; position: sticky; top: 0; z-index: 9000; margin-bottom: 16px; width: 100%; align-items: center; }
+.top-bar.active { display: flex; flex-wrap: wrap; }
+.nav-btn { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 0 16px; border-radius: 12px; height: 44px; font-size: 14px; font-weight: 600; cursor: pointer; backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; flex-shrink: 0; white-space: nowrap; transition: background 0.2s; }
+.nav-btn:hover { background: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+/* Custom Movie Filter Drawer (Glassmorphic Dropdown) */
+.filter-drawer { display: none; width: 100%; margin-top: 4px; }
+.filter-drawer.active { display: flex; }
+.custom-select { position: relative; width: 100%; }
+.select-selected { height: 40px; padding: 0 16px; border-radius: 10px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.dropdown-panel { position: absolute; background: rgba(26, 31, 46, 0.95); backdrop-filter: blur(25px); top: calc(100% + 8px); left: 0; width: 100%; z-index: 99999; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); display: none; }
+.dropdown-item { padding: 12px 16px; cursor: pointer; font-size: 13px; border-radius: 8px; font-weight: 500; color: #d4d4d8; transition: background 0.2s; }
+.dropdown-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.dropdown-item.selected { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+
+/* Glacier Loading Spinner */
+.status-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 24px; }
+.glacier-spinner { width: 48px; height: 48px; border: 4px solid rgba(255, 255, 255, 0.05); border-top: 4px solid #3b82f6; border-right: 4px solid rgba(59, 130, 246, 0.4); border-radius: 50%; animation: spin 1s linear infinite; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+.status-text { font-size: 15px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.5px; animation: pulse 2s infinite ease-in-out; text-align: center; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Main List View Framework */
+.list-container { display: none; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+.list-container.active-view { display: flex; }
+
+/* Item Cards (Position Relative is required for absolute inner badges) */
+.list-item { position: relative; display: flex; gap: 16px; background: rgba(26, 31, 46, 0.5); padding: 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); align-items: center; transition: background 0.3s; }
+.list-poster { width: 60px; height: 90px; border-radius: 8px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.5); flex-shrink: 0; background: linear-gradient(145deg, #3b82f6 0%, #1e3a8a 100%); border: 1px solid rgba(255,255,255,0.1); }
+.list-info { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0; }
+
+/* Protected Title Truncation (padding-right creates invisible wall against absolute badge) */
+.list-title { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; min-width: 0; padding-right: 65px; }
+.title-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.list-subtitle { font-size: 13px; color: #a1a1aa; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-meta { font-size: 12px; color: #71717a; display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px; border: 1px solid rgba(59, 130, 246, 0.3); }
+
+/* Absolute IMDb Badge (Top Right Anchoring) */
+.badge-imdb-wrap { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 3px 8px 3px 3px; font-size: 13px; font-weight: 700; color: #fff; border: 1px solid rgba(255,255,255,0.05); z-index: 10; }
+.badge-imdb-logo { background: #f5c518; color: #000; padding: 2px 6px; border-radius: 6px; margin-right: 6px; font-weight: 900; font-size: 11px; }
+
+/* Right Aligned Date Blocks (TV Shows) */
+.date-wrapper { margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; justify-content: center; flex-shrink: 0; min-width: 70px; }
+
+/* Right Aligned Bottom Blocks (Movies - Keeps 'In X Days' clear of the top badge) */
+.date-wrapper-movie { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; align-self: stretch; padding-bottom: 2px; flex-shrink: 0; }
+
+.date-highlight { color: #e4e4e7; font-weight: 700; font-size: 13px; background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); white-space: nowrap; text-align: center; }
+.date-relative { font-size: 11px; color: #a1a1aa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; text-align: center; }
+
+/* Rolling Contextual Highlight Magic (Glacier Blue) */
+.highlight-week { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1); }
+.highlight-week .title-text { color: #93c5fd; }
+.highlight-week .date-highlight { background: rgba(59, 130, 246, 0.2); color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.3); }
+.highlight-week .date-relative { color: #93c5fd; }
+
+/* Movie Specific Data Rows */
+.movie-dates { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.movie-date-row { font-size: 12px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.movie-date-label { color: #71717a; width: 50px; }
+.movie-date-val { color: #d4d4d8; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px; }
+.highlight-week .movie-date-val { background: rgba(59, 130, 246, 0.2); color: #bfdbfe; }
+
+</style>
+</head>
+<body>
+
+<div id="topBar" class="top-bar">
+    <button class="nav-btn" id="showsBtn" onclick="switchView('shows')" style="flex:1; background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: #fff;">📺 TV Shows</button>
+    <button class="nav-btn" id="moviesBtn" onclick="switchView('movies')" style="flex:1;">🍿 Movies</button>
+    
+    <div id="movieFilter" class="filter-drawer">
+        <div class="custom-select">
+            <div class="select-selected" onclick="toggleDropdown(event)">
+                <span id="sort-label">Sort: Digital Release</span>
+                <span>▼</span>
+            </div>
+            <div class="dropdown-panel" id="sort-options">
+                <div class="dropdown-item selected" onclick="setMovieSort('digital', 'Sort: Digital Release', event)">Sort: Digital Release</div>
+                <div class="dropdown-item" onclick="setMovieSort('cinema', 'Sort: Cinema Release', event)">Sort: Cinema Release</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="statusContainer" class="status-container">
+    <div class="glacier-spinner"></div>
+    <div id="statusText" class="status-text">Fetching Calendar...</div>
+</div>
+
+<div id="showsList" class="list-container"></div>
+<div id="moviesList" class="list-container"></div>
+
+<script>
+// ==============================================================================
+// DASHBOARD LOGIC ENGINE
+// ==============================================================================
+let appData = { movies: [], shows: [] };
+let movieSortType = 'digital'; 
+
+// Fetch JSON payload with cache-busting timestamp
+async function boot() {
+    try {
+        const response = await fetch('/local/arr_data.json?t=' + Date.now());
+        if (!response.ok) throw new Error("Network error");
+        appData = await response.json();
+        
+        if (!appData || (!appData.shows && !appData.movies)) throw new Error("Empty JSON");
+
+        document.getElementById('statusContainer').style.display = 'none';
+        document.getElementById('topBar').classList.add('active');
+        
+        renderShows();
+        renderMovies();
+        switchView('shows');
+    } catch (err) {
+        document.getElementById('statusText').innerText = "Calendar compiling...\nPlease check back shortly.";
+    }
+}
+
+// UI State Switcher
+function switchView(view) {
+    if(view === 'shows') {
+        document.getElementById('showsList').classList.add('active-view');
+        document.getElementById('moviesList').classList.remove('active-view');
+        document.getElementById('movieFilter').classList.remove('active');
+        
+        document.getElementById('showsBtn').style.background = 'rgba(59, 130, 246, 0.2)';
+        document.getElementById('showsBtn').style.borderColor = 'rgba(59, 130, 246, 0.4)';
+        document.getElementById('moviesBtn').style.background = 'rgba(0, 0, 0, 0.6)';
+        document.getElementById('moviesBtn').style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    } else {
+        document.getElementById('moviesList').classList.add('active-view');
+        document.getElementById('showsList').classList.remove('active-view');
+        document.getElementById('movieFilter').classList.add('active');
+        
+        document.getElementById('moviesBtn').style.background = 'rgba(59, 130, 246, 0.2)';
+        document.getElementById('moviesBtn').style.borderColor = 'rgba(59, 130, 246, 0.4)';
+        document.getElementById('showsBtn').style.background = 'rgba(0, 0, 0, 0.6)';
+        document.getElementById('showsBtn').style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    }
+}
+
+// Custom Dropdown Logic
+function toggleDropdown(e) {
+    e.stopPropagation();
+    let panel = document.getElementById('sort-options');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+document.addEventListener('click', () => {
+    let panel = document.getElementById('sort-options');
+    if(panel) panel.style.display = 'none';
+});
+
+function setMovieSort(type, label, e) {
+    e.stopPropagation();
+    movieSortType = type;
+    document.getElementById('sort-label').innerText = label;
+    
+    document.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
+    e.target.classList.add('selected');
+    document.getElementById('sort-options').style.display = 'none';
+    
+    renderMovies(); // Force re-render based on new sort context
+}
+
+// --- Date Math Utilities ---
+
+function formatDateDDMMYYYY(dateString) {
+    if (!dateString || dateString === "null") return "TBA";
+    let d = new Date(dateString);
+    if (isNaN(d)) return "TBA";
+    return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();
+}
+
+function getDaysUntil(dateString) {
+    if (!dateString || dateString === "null") return "";
+    let d = new Date(dateString);
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    d.setHours(0,0,0,0);
+    
+    let diffTime = d - today;
+    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    if (diffDays < 0) return "Released";
+    return `In ${diffDays} days`;
+}
+
+// Determines if an item falls within the designated rolling highlight window
+function isReleasingSoon(dateString, daysAhead) {
+    if (!dateString || dateString === "null") return false;
+    let d = new Date(dateString);
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    
+    let targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysAhead);
+    targetDate.setHours(23,59,59,999);
+
+    return d >= today && d <= targetDate;
+}
+
+// --- DOM RENDERERS ---
+
+function renderShows() {
+    if (!appData.shows || appData.shows.length === 0) {
+        document.getElementById('showsList').innerHTML = '<div class="status-text" style="margin-top:20px;">No upcoming shows.</div>';
+        return;
+    }
+    
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    
+    let sortedShows = appData.shows.filter(s => {
+        if (!s.airDate) return false;
+        if (s.hasFile) return false; // Instantly hide downloaded media
+        
+        let airDate = new Date(s.airDate);
+        return airDate >= today; // Exclude yesterday's un-downloaded episodes
+    }).sort((a, b) => new Date(a.airDate) - new Date(b.airDate));
+    
+    let html = '';
+    sortedShows.forEach(s => {
+        let dDate = formatDateDDMMYYYY(s.airDate);
+        let relativeTime = getDaysUntil(s.airDate);
+        let posterAttr = s.img ? `src="${s.img}"` : ``; 
+        
+        // Hide runtime badge entirely if Sonarr reports 0m
+        let runtimeHtml = s.runtime > 0 ? `<span>${s.runtime}m</span>` : '';
+        
+        // Apply 3-Day Rolling Highlight for TV Shows
+        let isThisWeek = isReleasingSoon(s.airDate, 3);
+        let highlightClass = isThisWeek ? "highlight-week" : "";
+
+        html += `
+        <div class="list-item ${highlightClass}">
+            <img ${posterAttr} class="list-poster" onerror="this.style.display='none'">
+            <div class="list-info">
+                <div class="list-title"><span class="title-text">${s.showTitle}</span></div>
+                <div class="list-subtitle">${s.epTitle}</div>
+                <div class="list-meta">
+                    <span class="badge">${s.sxxeyy}</span>
+                    ${runtimeHtml}
+                </div>
+            </div>
+            <div class="date-wrapper">
+                <span class="date-highlight">${dDate}</span>
+                <span class="date-relative">${relativeTime}</span>
+            </div>
+        </div>`;
+    });
+    
+    if (html === '') html = '<div class="status-text" style="margin-top:20px;">No upcoming shows pending download.</div>';
+    document.getElementById('showsList').innerHTML = html;
+}
+
+function renderMovies() {
+    if (!appData.movies || appData.movies.length === 0) {
+        document.getElementById('moviesList').innerHTML = '<div class="status-text" style="margin-top:20px;">No movies found.</div>';
+        return;
+    }
+    
+    let today = new Date();
+    today.setHours(0,0,0,0);
+
+    // 14-day grace period for digital releases that haven't downloaded yet
+    let gracePeriod = new Date(today);
+    gracePeriod.setDate(today.getDate() - 14);
+
+    let filteredMovies = appData.movies.filter(m => {
+        if (m.hasFile) return false; // Instantly hide downloaded media
+        
+        // Dynamically select the target date based on User UI Dropdown Context
+        let targetDateStr = movieSortType === 'digital' ? m.digitalRelease : m.cinemaRelease;
+        
+        // Prevent hiding valid movies just because they lack one of the two dates
+        if (!targetDateStr || targetDateStr === "null") return false;
+        
+        let dDate = new Date(targetDateStr);
+        if (dDate < gracePeriod) return false; 
+        
+        return true;
+    });
+    
+    filteredMovies.sort((a, b) => {
+        let dateA = movieSortType === 'digital' ? new Date(a.digitalRelease) : new Date(a.cinemaRelease);
+        let dateB = movieSortType === 'digital' ? new Date(b.digitalRelease) : new Date(b.cinemaRelease);
+        return dateA - dateB;
+    });
+
+    let html = '';
+    filteredMovies.forEach(m => {
+        let dDigi = formatDateDDMMYYYY(m.digitalRelease);
+        let dCine = formatDateDDMMYYYY(m.cinemaRelease);
+        
+        // Evaluate contextual countdown based on Dropdown state
+        let targetDateStr = movieSortType === 'digital' ? m.digitalRelease : m.cinemaRelease;
+        let relativeTime = getDaysUntil(targetDateStr);
+        
+        let ratingHtml = (m.rating && m.rating !== "N/A" && m.rating > 0) 
+            ? `<div class="badge-imdb-wrap"><span class="badge-imdb-logo">IMDb</span>${m.rating}</div>` 
+            : '';
+            
+        let posterAttr = m.img ? `src="${m.img}"` : ``; 
+        
+        // Apply 7-Day Rolling Highlight for Movies
+        let isThisWeek = isReleasingSoon(targetDateStr, 7);
+        let highlightClass = isThisWeek ? "highlight-week" : "";
+
+        // ratingHtml is placed independently at the top of the flex container logic to allow absolute positioning
+        html += `
+        <div class="list-item ${highlightClass}">
+            ${ratingHtml}
+            <img ${posterAttr} class="list-poster" onerror="this.style.display='none'">
+            <div class="list-info">
+                <div class="list-title"><span class="title-text">${m.title}</span></div>
+                <div class="movie-dates">
+                    <div class="movie-date-row"><span class="movie-date-label">Digital:</span> <span class="movie-date-val">${dDigi}</span></div>
+                    <div class="movie-date-row"><span class="movie-date-label">Cinema:</span> <span class="movie-date-val">${dCine}</span></div>
+                </div>
+            </div>
+            <div class="date-wrapper-movie">
+                <span class="date-relative">${relativeTime}</span>
+            </div>
+        </div>`;
+    });
+    
+    if (html === '') html = '<div class="status-text" style="margin-top:20px;">No upcoming movies pending download.</div>';
+    document.getElementById('moviesList').innerHTML = html;
+}
+
+boot();
+</script></body></html>
