@@ -1,9 +1,8 @@
 # Offline Media Dashboards for Home Assistant (Plex & *Arr)
 A highly resilient, offline-first dashboard suite for Home Assistant. Features zero-latency rendering for Plex, Radarr, and Sonarr, OMDb poster fallbacks, smart downloaded-status filtering, and dynamic release countdowns. 
-<img width="1369" height="526" alt="image" src="https://github.com/user-attachments/assets/b7f2093d-cf6d-4cf5-9ef9-096ff8dbec71" />
 
+![plex_dashboard](https://github.com/user-attachments/assets/8c502a11-c46c-41d2-85be-624c28f67c4e)
 
-Choose between the premium glassmorphic **Glacier UI** or the clean, native **Standard Dark UI**.
 
 ## Why This Exists (The Problem it Solves)
 Standard Home Assistant integrations and custom cards for Plex, Radarr, and Sonarr rely on **live API connections**. If your NAS reboots, your Docker containers crash, or your Plex server goes down for maintenance, your Home Assistant dashboards break, hang on loading screens, or display ugly error messages. 
@@ -11,6 +10,8 @@ Standard Home Assistant integrations and custom cards for Plex, Radarr, and Sona
 **This project decouples the frontend from the backend.** Instead of Home Assistant constantly querying your media servers, lightweight background scripts silently compile your library and calendar data into static JSON files. The Home Assistant frontend then reads *only* these static files. 
 
 **The Result:** Even if your entire media server rack is completely powered off, your Home Assistant media dashboards will load instantly and look flawless.
+
+![sonarr_radarr](https://github.com/user-attachments/assets/5d97037b-2c65-45b2-995b-145a8db9ec1c) 
 
 ---
 
